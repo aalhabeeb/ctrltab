@@ -3,7 +3,10 @@
 # Eén image: Express serveert zowel de API als de statische frontend, dus de
 # aparte nginx-image van upstream is vervallen.
 #
-# Tags: elke push naar main levert `main`, `latest` en `sha-<commit>`; een git-tag
+# Tags: elke push naar main levert `main`, `latest` en `sha-<commit>`; een push naar
+# de dev-branch levert `dev` en `sha-<commit>` en RAAKT `latest` NIET (die hangt aan
+# is_default_branch). Zo kun je een wijziging draaien en testen zonder dat iemand die
+# `latest` pullt hem ongevraagd binnenkrijgt. Een git-tag
 # `v1.2.0` levert daarnaast `1.2.0` en `1.2`. `latest` is er voor wie hem met de
 # hand wil draaien; de Kubernetes-manifests in de k3s-repo wijzen bewust naar een
 # onveranderlijke tag, zodat terugrollen neerkomt op het terugzetten van een regel
@@ -24,7 +27,7 @@ name: build
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
     tags: ["v*"]
   pull_request:
   workflow_dispatch:
