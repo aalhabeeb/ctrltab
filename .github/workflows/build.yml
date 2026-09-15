@@ -78,6 +78,12 @@ jobs:
             org.opencontainers.image.title=ctrlTAB
             org.opencontainers.image.description=Self-hosted bookmark and link manager - one container, Express + SQLite
             org.opencontainers.image.documentation=https://github.com/aalhabeeb/ctrltab#readme
+          # Annotations komen standaard uit de GitHub-repo-omschrijving (Nederlands);
+          # gelijktrekken met de labels hierboven.
+          annotations: |
+            org.opencontainers.image.title=ctrlTAB
+            org.opencontainers.image.description=Self-hosted bookmark and link manager - one container, Express + SQLite
+            org.opencontainers.image.documentation=https://github.com/aalhabeeb/ctrltab#readme
 
       - name: Bouwen en pushen
         uses: docker/build-push-action@v6
@@ -86,24 +92,17 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          annotations: ${{ steps.meta.outputs.annotations }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # De overview-pagina van een Docker Hub-repo komt niet uit de image mee; die
-      # moet apart via de Hub-API gezet worden. docs/dockerhub.md is daarvoor
-      # geschreven en niet de GitHub-README: dat publiek wil weten hoe je de image
-      # draait, niet wat er ten opzichte van upstream veranderd is.
-      #
-      # continue-on-error: het publiceren van de image is belangrijker dan de
-      # beschrijving. Accepteert de Hub-API het access token niet, dan faalt alleen
-      # deze stap en is de tekst met de hand te plakken.
-      - name: Docker Hub-overview bijwerken
-        if: github.event_name != 'pull_request' && env.DOCKERHUB_ENABLED == 'true'
-        continue-on-error: true
-        uses: peter-evans/dockerhub-description@v4
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-          repository: ${{ vars.DOCKERHUB_NAMESPACE }}/ctrltab
-          short-description: "Self-hosted bookmark and link manager - one container, Express + SQLite"
-          readme-filepath: docs/dockerhub.md
+# NIET automatiseren: de Docker Hub-overview.
+#
+# Geprobeerd met peter-evans/dockerhub-description. Inloggen met het access token
+# lukt, maar de PATCH op de repository geeft `Forbidden`: de Hub-API staat het
+# wijzigen van de beschrijving alleen toe met het ACCOUNTWACHTWOORD, niet met een
+# token. Dat wachtwoord in een GitHub-secret zetten maakt de blast radius van dat
+# secret je hele Docker Hub-account, voor een stukje tekst.
+#
+# De overview staat daarom met de hand op Docker Hub; docs/dockerhub.md is de bron
+# van die tekst. Wijzig je dat bestand, plak hem dan opnieuw.
