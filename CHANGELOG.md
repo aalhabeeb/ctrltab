@@ -5,6 +5,38 @@ All notable changes to ctrlTAB are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-09-15
+
+First release of this continuation (see the fork notice in the README). Upstream stopped at
+1.1.0; this picks up from there.
+
+### Added
+- **Single sign-on (OIDC)** — authorization code flow with PKCE against any OpenID Connect
+  provider, built for Authentik. Validates `state`, `nonce`, and the id_token's signature,
+  issuer, audience and expiry against the provider's JWKS, with no extra dependency. Off
+  unless `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET` and `OIDC_REDIRECT_URI` are all
+  set. Local login always keeps working, so a provider outage does not lock you out.
+- Accounts created through SSO get an unusable password hash, so they cannot double as a local
+  login. `OIDC_ADMIN_GROUP` can sync the admin flag from a group claim.
+- Container images on GHCR and Docker Hub, tagged by branch, commit SHA, semver and `latest`.
+  Upstream published none.
+- A committed `package-lock.json`, so builds are reproducible.
+
+### Changed
+- **One container instead of two.** Express now serves the static frontend itself, so the
+  separate nginx container and its config are gone. Note that nginx's `client_max_body_size`
+  went with it: upload size is bounded by the per-route multer limits and by whatever proxy
+  sits in front.
+- Multi-stage Docker build that carries a compiler, so a missing prebuilt binary for a native
+  module costs build time instead of a container that fails to start.
+- `better-sqlite3` 11 → 12 (prebuilt binaries up to Node 26) and `multer` 1 → 2, which fixes
+  the known vulnerabilities in 1.x.
+- Node 20 → 24.
+
+### Fixed
+- The build now starts the image and queries it before publishing. A forgotten `COPY` had
+  produced an image that built cleanly and then died at startup with `MODULE_NOT_FOUND`.
+
 ## [1.1.0] - 2026-06-29
 
 ### Added
@@ -47,5 +79,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Internationalization (English, Dutch, Spanish).
 - Progressive Web App support (installable, offline-capable service worker).
 
+[1.2.0]: https://github.com/aalhabeeb/ctrltab/releases/tag/v1.2.0
 [1.1.0]: https://github.com/erymantho/CtrlTab/releases/tag/v1.1.0
 [1.0.0]: https://github.com/erymantho/CtrlTab/releases/tag/v1.0.0
