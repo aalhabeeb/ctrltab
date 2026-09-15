@@ -71,6 +71,13 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=sha
             type=raw,value=latest,enable={{is_default_branch}}
+          # Zonder deze overrides neemt metadata-action de GitHub-repo-omschrijving
+          # over als image-beschrijving; die is Nederlands, terwijl wie de image
+          # pullt daar niets aan heeft. Titel en documentatie-URL meteen mee.
+          labels: |
+            org.opencontainers.image.title=ctrlTAB
+            org.opencontainers.image.description=Self-hosted bookmark and link manager - one container, Express + SQLite
+            org.opencontainers.image.documentation=https://github.com/aalhabeeb/ctrltab#readme
 
       - name: Bouwen en pushen
         uses: docker/build-push-action@v6
@@ -81,3 +88,22 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      # De overview-pagina van een Docker Hub-repo komt niet uit de image mee; die
+      # moet apart via de Hub-API gezet worden. docs/dockerhub.md is daarvoor
+      # geschreven en niet de GitHub-README: dat publiek wil weten hoe je de image
+      # draait, niet wat er ten opzichte van upstream veranderd is.
+      #
+      # continue-on-error: het publiceren van de image is belangrijker dan de
+      # beschrijving. Accepteert de Hub-API het access token niet, dan faalt alleen
+      # deze stap en is de tekst met de hand te plakken.
+      - name: Docker Hub-overview bijwerken
+        if: github.event_name != 'pull_request' && env.DOCKERHUB_ENABLED == 'true'
+        continue-on-error: true
+        uses: peter-evans/dockerhub-description@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: ${{ vars.DOCKERHUB_NAMESPACE }}/ctrltab
+          short-description: "Self-hosted bookmark and link manager - one container, Express + SQLite"
+          readme-filepath: docs/dockerhub.md
