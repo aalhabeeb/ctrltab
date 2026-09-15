@@ -1,0 +1,12 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "labels": ["dependencies"],
+  "packageRules": [
+    {
+      "description": "Majors niet automatisch mergen: de build-workflow bouwt ze wel, maar een nieuwe Node-ABI of een major van een native module wil je zelf bekijken.",
+      "matchUpdateTypes": ["major"],
+      "labels": ["dependencies", "major", "manual-review-required"]
+    }
+  ]
+}

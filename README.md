@@ -6,9 +6,22 @@ A lightweight, self-hosted bookmark and link manager to organize your links into
 
 ![Version](https://img.shields.io/badge/version-1.1.0-brightgreen)
 ![Docker](https://img.shields.io/badge/Docker-ready-blue?logo=docker)
-![Node.js](https://img.shields.io/badge/Node.js-20-green?logo=node.js)
+![Node.js](https://img.shields.io/badge/Node.js-24-green?logo=node.js)
 ![SQLite](https://img.shields.io/badge/SQLite-database-003B57?logo=sqlite)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
+
+> **Fork notice** — This is an independent continuation of
+> [erymantho/ctrlTAB](https://github.com/erymantho/ctrlTAB), maintained by
+> [@aalhabeeb](https://github.com/aalhabeeb) for a personal k3s homelab. The original work is
+> MIT licensed and that license is kept intact — see [`LICENSE`](LICENSE).
+>
+> Container images are published to GHCR, so there is no need to build from source:
+> `ghcr.io/aalhabeeb/ctrltab-api` and `ghcr.io/aalhabeeb/ctrltab-web`.
+>
+> Changes relative to upstream: multi-stage Docker builds that carry a compiler for native
+> modules, a committed `package-lock.json`, `better-sqlite3` 12 and `multer` 2, and a
+> configurable API upstream in the nginx config (`API_HOST` / `API_PORT`) instead of a
+> hard-coded compose service name.
 
 ---
 
