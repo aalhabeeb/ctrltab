@@ -56,3 +56,20 @@ loginForm.addEventListener('submit', async (e) => {
         // Token invalid, stay on login page
     }
 })();
+
+// Toon de SSO-knop alleen als de server zegt dat OIDC geconfigureerd is. De knop
+// staat in de HTML op `hidden`, dus zonder deze aanroep blijft hij weg - en bij een
+// server zonder deze route (oudere image) valt hij stilletjes terug op niets.
+(async function() {
+    try {
+        const res = await fetch(`${API_BASE}/auth/oidc/config`);
+        if (!res.ok) return;
+        const cfg = await res.json();
+        if (!cfg.enabled) return;
+        const btn = document.getElementById('ssoButton');
+        if (cfg.label) btn.textContent = cfg.label;
+        document.getElementById('ssoBlock').hidden = false;
+    } catch {
+        // Geen SSO beschikbaar; de lokale login blijft gewoon staan.
+    }
+})();
