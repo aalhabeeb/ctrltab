@@ -13,28 +13,9 @@ A lightweight, self-hosted bookmark and link manager to organize your links into
 > **Fork notice** — This is an independent continuation of
 > [erymantho/ctrlTAB](https://github.com/erymantho/ctrlTAB), maintained by
 > [@aalhabeeb](https://github.com/aalhabeeb) for a personal k3s homelab. The original work is
-> MIT licensed and that license is kept intact — see [`LICENSE`](LICENSE).
->
-> Container images are published on every push, so there is no need to build from source.
-> Upstream never published an image — these are the only ready-made ctrlTAB images:
->
-> | Registry | Image |
-> |----------|-------|
-> | GitHub Container Registry | `ghcr.io/aalhabeeb/ctrltab` |
-> | Docker Hub | `alhabeeb/ctrltab` |
->
-> One image, one container: Express serves both the API and the static frontend, so the
-> separate nginx container from upstream is gone. Tags: `latest`, `main`, `sha-<commit>` and
-> semver on release tags.
->
-> ```bash
-> docker run -d --name ctrltab -p 8090:3000 -v ctrltab-data:/app/data \
->   -e JWT_SECRET="$(openssl rand -hex 32)" alhabeeb/ctrltab:latest
-> ```
->
-> Changes relative to upstream: a single image instead of a separate API and nginx container,
-> multi-stage Docker builds that carry a compiler for native modules, a committed
-> `package-lock.json`, and `better-sqlite3` 12 and `multer` 2.
+> MIT licensed and that license is kept intact — see [`LICENSE`](LICENSE) and
+> [Credits](#credits). Upstream has been quiet since June 2026, so fixes and dependency
+> updates happen here.
 
 ---
 
@@ -51,7 +32,7 @@ A lightweight, self-hosted bookmark and link manager to organize your links into
 - ⬜ **Two-column layout** — Optional two-column section layout per user preference
 - ↕️ **Drag & Drop** — Reorder links and sections by dragging; reset to A-Z with one click
 - 👤 **User Accounts** — Multi-user with admin panel and JWT authentication
-- 🐳 **Docker-ready** — Runs as a two-container stack (API + Nginx)
+- 🐳 **Docker-ready** — A single container; no reverse proxy or sidecar needed
 - 🪶 **Lightweight** — SQLite database, no external dependencies
 - 🔒 **Self-hosted** — Your data stays on your server
 - 📱 **PWA** — Installable as an app, works offline for static assets
@@ -60,43 +41,55 @@ A lightweight, self-hosted bookmark and link manager to organize your links into
 
 ## Quick Start
 
-### Prerequisites
-
-- Docker & Docker Compose
-- Git
-
-### Deploy
-
-**1. Clone the repository**
+A ready-made image is published on every push, so there is nothing to build.
 
 ```bash
-git clone https://github.com/erymantho/ctrlTAB.git
-cd ctrlTAB
+docker run -d --name ctrltab \
+  -p 8090:3000 \
+  -v ctrltab-data:/app/data \
+  -e JWT_SECRET="$(openssl rand -hex 32)" \
+  -e ADMIN_USERNAME="admin" \
+  -e ADMIN_PASSWORD="choose-something-better" \
+  --restart unless-stopped \
+  ghcr.io/aalhabeeb/ctrltab:latest
 ```
 
-**2. Generate a JWT secret**
+ctrlTAB is now available at `http://localhost:8090`. Log in with the admin credentials above.
+
+`ADMIN_USERNAME` and `ADMIN_PASSWORD` are only used to create the account on an **empty**
+database. After the first login, change the password in the app — editing those variables
+later has no effect. Changing `JWT_SECRET` invalidates every session and logs everyone out.
+
+### With Docker Compose
 
 ```bash
-openssl rand -hex 32
-```
-
-**3. Set your credentials**
-
-```bash
-export JWT_SECRET="your-generated-secret"
-export ADMIN_USERNAME="admin"
-export ADMIN_PASSWORD="your-secure-password"
-```
-
-**4. Start the stack**
-
-```bash
+git clone https://github.com/aalhabeeb/ctrltab.git
+cd ctrltab
+export JWT_SECRET="$(openssl rand -hex 32)"
 docker compose up -d
 ```
 
-ctrlTAB is now available at `http://localhost:8090`. Log in with your admin credentials.
+The compose file builds from source and is aimed at development; for a plain install, prefer
+the image above. The published port is set under the `ctrltab` service.
 
-> **Note:** The default port is `8090`. You can change it in `docker-compose.yml` under the `web` service.
+---
+
+## Images and tags
+
+| Registry | Image |
+|----------|-------|
+| GitHub Container Registry | `ghcr.io/aalhabeeb/ctrltab` |
+| Docker Hub | `alhabeeb/ctrltab` |
+
+| Tag | Meaning |
+|-----|---------|
+| `latest` | Newest build of the default branch — moves |
+| `main` | The same build, named after the branch — moves |
+| `sha-<commit>` | One specific commit — never moves |
+| `1.2.0`, `1.2` | Published when a `v*` git tag is pushed |
+
+For anything you want to roll back predictably — a Kubernetes manifest, a pinned server — use
+`sha-<commit>` or a version tag rather than `latest`.
 
 ---
 
@@ -104,21 +97,41 @@ ctrlTAB is now available at `http://localhost:8090`. Log in with your admin cred
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `JWT_SECRET` | `please-change-this-secret` | Secret key for JWT signing — **always change in production** |
-| `ADMIN_USERNAME` | `admin` | Initial admin username |
-| `ADMIN_PASSWORD` | `admin123` | Initial admin password |
-| `DB_PATH` | `/app/data/ctrltab.db` | Path to SQLite database file |
+| `JWT_SECRET` | `dev-secret-change-in-production` | Secret key for JWT signing — **always change in production** |
+| `ADMIN_USERNAME` | `admin` | Initial admin username, used only on an empty database |
+| `ADMIN_PASSWORD` | `admin123` | Initial admin password, used only on an empty database |
+| `DB_PATH` | `/app/data/ctrltab.db` | Path to the SQLite database file |
+| `PUBLIC_DIR` | `/app/public` | Directory holding the static frontend |
+
+Everything that must survive a restart sits together: `DB_PATH` points at the SQLite file, and
+its directory also holds `uploads/` with custom icons and backgrounds. Mounting `/app/data` is
+therefore enough to persist all state.
 
 ---
 
 ## Tech Stack
 
 - **Frontend:** Vanilla HTML, CSS, JavaScript (no frameworks, no build step)
-- **Backend:** Node.js, Express, better-sqlite3
+- **Backend:** Node.js 24, Express, better-sqlite3
 - **Database:** SQLite with WAL mode
 - **Auth:** JWT tokens, bcrypt password hashing
-- **Proxy:** Nginx (Alpine)
-- **Containers:** Docker & Docker Compose
+- **Container:** One image, one process — Express serves both the API and the frontend
+
+---
+
+## Differences from upstream
+
+- **One container instead of two.** Upstream ran a Node container for the API plus an nginx
+  container that served the frontend and proxied `/api/`. Express now serves the static files
+  itself, so there is no reverse proxy, no second image and no nginx config to template. Note
+  that nginx's `client_max_body_size` went with it: upload size is bounded by the per-route
+  multer limits (2–10 MB) and by whatever proxy you put in front.
+- **Multi-stage build with a compiler on board.** `better-sqlite3` and `bcrypt` ship prebuilt
+  binaries for common Node ABIs; when one is missing the build compiles it, instead of the
+  container failing at startup. The build also runs a smoke test that loads both native
+  modules and writes a row to SQLite, because npm can skip install scripts without failing.
+- **A committed `package-lock.json`** and `npm ci` in the build, so an image is reproducible.
+- **`better-sqlite3` 12 and `multer` 2** — the latter fixes the known vulnerabilities in 1.x.
 
 ---
 
@@ -145,19 +158,22 @@ ctrlTAB is now available at `http://localhost:8090`. Log in with your admin cred
 - [x] Import ctrlTAB backup (JSON restore)
 - [x] Import browser bookmarks (Netscape HTML format — Chrome, Firefox, etc.)
 - [x] Copy link URL to clipboard (button on each link card)
+- [x] Focus-on-type search (type anywhere to instantly focus the search bar)
 - [ ] Descriptions for collections, sections, and links
 - [ ] Import from other services (Raindrop, Pocket)
 - [ ] Tags and filtering
 - [ ] Browser extension for quick saving
-- [x] Focus-on-type search (type anywhere to instantly focus the search bar)
 - [ ] More keyboard shortcuts
 
 ---
 
 ## License
 
-MIT — do whatever you want with it.
+MIT — do whatever you want with it. See [`LICENSE`](LICENSE).
 
 ---
 
-*Built by Michael Smith, with Claude Code*
+## Credits
+
+Originally built by **Michael Smith** ([erymantho/ctrlTAB](https://github.com/erymantho/ctrlTAB)), with Claude Code.
+Continued here by [@aalhabeeb](https://github.com/aalhabeeb).
