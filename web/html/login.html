@@ -77,6 +77,31 @@
             font-weight: 600;
             margin-top: var(--spacing-sm);
         }
+
+        .login-divider {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+            color: var(--color-text-muted);
+            font-size: 12px;
+            text-transform: uppercase;
+            margin: var(--spacing-lg) 0;
+        }
+
+        .login-divider::before,
+        .login-divider::after {
+            content: "";
+            flex: 1;
+            height: 1px;
+            background: var(--color-bg-tertiary);
+        }
+
+        .login-sso .login-btn {
+            display: block;
+            text-align: center;
+            text-decoration: none;
+            margin-top: 0;
+        }
     </style>
     <script>
         (function() {
@@ -114,6 +139,11 @@
 
                 <button type="submit" class="btn-primary login-btn" data-i18n="btn.login">Login</button>
             </form>
+
+            <div class="login-sso" id="ssoBlock" hidden>
+                <div class="login-divider"><span data-i18n="login.or">or</span></div>
+                <a class="btn-secondary login-btn" id="ssoButton" href="/api/auth/oidc/login">Single sign-on</a>
+            </div>
         </div>
     </div>
 

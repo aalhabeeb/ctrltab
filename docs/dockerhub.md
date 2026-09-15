@@ -62,6 +62,17 @@ volumes:
 The admin variables only do something when the database is empty. After the first login,
 change the password inside the app; editing the variables afterwards has no effect.
 
+
+## Single sign-on (OIDC)
+
+Optional. Set `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET` and `OIDC_REDIRECT_URI`
+(`https://<your-host>/api/auth/oidc/callback`) and a login button appears. Authorization code
+flow with PKCE, talking to the provider directly — no trusted-header proxy needed. Local login
+keeps working, so you can still get in when the provider is down.
+
+Further options: `OIDC_SCOPES`, `OIDC_BUTTON_LABEL`, `OIDC_USERNAME_CLAIM`,
+`OIDC_ALLOW_SIGNUP`, `OIDC_ADMIN_GROUP`. See the GitHub README for the full table.
+
 ## Storage
 
 Mount **`/app/data`** and everything survives a restart: the SQLite database lives there, and

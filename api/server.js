@@ -248,6 +248,12 @@ app.get('/api/auth/verify', authenticateToken, (req, res) => {
   res.json({ user: req.user });
 });
 
+// ─── OIDC / SSO (optioneel) ───────────────────────────────────────
+// Blijft volledig uit tenzij OIDC_ISSUER, OIDC_CLIENT_ID, OIDC_CLIENT_SECRET en
+// OIDC_REDIRECT_URI alle vier gezet zijn. De lokale login hierboven blijft altijd
+// werken: valt de provider uit, dan wil je er nog in kunnen.
+require('./oidc').register(app, { db, jwtSecret: JWT_SECRET, bcrypt });
+
 app.post('/api/auth/change-password', authenticateToken, async (req, res) => {
   const { currentPassword, newPassword } = req.body;
   if (!currentPassword || !newPassword) return res.status(400).json({ error: 'Current and new password are required' });

@@ -88,6 +88,44 @@ jobs:
             org.opencontainers.image.description=Self-hosted bookmark and link manager - one container, Express + SQLite
             org.opencontainers.image.documentation=https://github.com/aalhabeeb/ctrltab#readme
 
+
+      # De build zelf bewijst alleen dat de image te bouwen valt. Dat een vergeten
+      # COPY-regel pas bij het starten opvalt (MODULE_NOT_FOUND op oidc.js) kost je
+      # anders een kapotte uitrol. Dus: image eerst lokaal laden, echt starten en
+      # bevragen. De push hieronder komt daarna uit dezelfde cache en kost niets.
+      - name: Image bouwen voor de rookproef
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: ctrltab:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Rookproef - container echt starten
+        run: |
+          set -e
+          docker run -d --name ctrltab-ci -p 3000:3000 -e JWT_SECRET=ci-test ctrltab:ci
+          ok=""
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:3000/api/health >/dev/null 2>&1; then ok=1; break; fi
+            sleep 1
+          done
+          if [ -z "$ok" ]; then
+            echo "::error::de container kwam niet omhoog"
+            docker logs ctrltab-ci || true
+            docker rm -f ctrltab-ci || true
+            exit 1
+          fi
+          curl -fsS http://127.0.0.1:3000/ >/dev/null || {
+            echo "::error::de frontend wordt niet geserveerd"
+            docker logs ctrltab-ci || true
+            docker rm -f ctrltab-ci || true
+            exit 1
+          }
+          echo "health en frontend beantwoord; containerlog:"
+          docker logs ctrltab-ci
+          docker rm -f ctrltab-ci
       - name: Bouwen en pushen
         uses: docker/build-push-action@v6
         with:

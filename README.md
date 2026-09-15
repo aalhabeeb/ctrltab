@@ -109,6 +109,43 @@ therefore enough to persist all state.
 
 ---
 
+## Single sign-on (OIDC)
+
+ctrlTAB can log users in against an OIDC provider — Authentik, Keycloak, Zitadel, Authelia and
+anything else that speaks OpenID Connect. It uses the authorization code flow with PKCE and
+talks to the provider directly, so there is no trusted-header proxy setup to get wrong.
+
+SSO stays off until all four of `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET` and
+`OIDC_REDIRECT_URI` are set. **Local login keeps working either way** — if the provider is
+down, you can still get in with a local account.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `OIDC_ISSUER` | — | Issuer URL, e.g. `https://auth.example.com/application/o/ctrltab/` |
+| `OIDC_CLIENT_ID` | — | Client ID from the provider |
+| `OIDC_CLIENT_SECRET` | — | Client secret from the provider |
+| `OIDC_REDIRECT_URI` | — | Must match exactly: `https://<your-host>/api/auth/oidc/callback` |
+| `OIDC_SCOPES` | `openid profile email` | Scopes to request |
+| `OIDC_BUTTON_LABEL` | `Log in with Authentik` | Text on the login button |
+| `OIDC_USERNAME_CLAIM` | `preferred_username` | Claim used as the local username |
+| `OIDC_ALLOW_SIGNUP` | `true` | Create a local account on first SSO login |
+| `OIDC_ADMIN_GROUP` | — | Users in this group get admin; leave empty to manage admin locally |
+
+Accounts created through SSO get an unusable password hash, so they cannot be used to log in
+locally — they exist only to own collections and links.
+
+### Provider setup
+
+Create a confidential client with:
+
+- **Redirect URI**: `https://<your-host>/api/auth/oidc/callback`
+- **Grant type**: authorization code, with PKCE (S256)
+- **Client authentication**: client secret (basic)
+- **Scopes**: `openid`, `profile`, `email` — plus a groups claim if you use `OIDC_ADMIN_GROUP`
+
+The server must be able to reach the issuer over the network: discovery, the token exchange
+and the JWKS fetch all happen server-side.
+
 ## Tech Stack
 
 - **Frontend:** Vanilla HTML, CSS, JavaScript (no frameworks, no build step)
