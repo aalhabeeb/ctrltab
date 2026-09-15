@@ -893,7 +893,7 @@ function showSettings() {
                 <img class="github-logo" src="icons/github-logo.svg" alt="GitHub" width="14" height="14">
                 GitHub
             </a>
-            <div class="settings-version">v1.1</div>
+            <div class="settings-version">v1.2</div>
         </div>
     `;
 
