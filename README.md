@@ -21,7 +21,7 @@ A lightweight, self-hosted bookmark and link manager to organize your links into
 > | Registry | API | Web |
 > |----------|-----|-----|
 > | GitHub Container Registry | `ghcr.io/aalhabeeb/ctrltab-api` | `ghcr.io/aalhabeeb/ctrltab-web` |
-> | Docker Hub | `aalhabeeb/ctrltab-api` | `aalhabeeb/ctrltab-web` |
+> | Docker Hub | `alhabeeb/ctrltab-api` | `alhabeeb/ctrltab-web` |
 >
 > Images are tagged by branch, commit SHA and semver — there is deliberately no `latest`, so a
 > deployment always names an immutable tag.

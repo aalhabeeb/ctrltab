@@ -9,9 +9,9 @@
 # er voor distributie naar anderen: upstream publiceerde nooit een image, dus dit
 # is de enige kant-en-klare ctrlTAB-image die er is.
 #
-# De Docker Hub-push schakelt zichzelf uit zolang het secret DOCKERHUB_TOKEN niet
-# bestaat; de GHCR-push draait dan gewoon door. Zo faalt de workflow niet in een
-# fork of voordat het token gezet is.
+# De Docker Hub-push schakelt zichzelf uit zolang het secret DOCKERHUB_TOKEN of de
+# variabele DOCKERHUB_NAMESPACE ontbreekt; de GHCR-push draait dan gewoon door. Zo
+# faalt de workflow niet in een fork of voordat het token gezet is.
 #
 # Pull requests bouwen wel, maar pushen niet. Dat is de vangnetfunctie: een
 # Renovate-PR die de Node-major of een native dependency ophoogt, faalt hier
@@ -34,7 +34,7 @@ jobs:
       packages: write
     env:
       # secrets zijn niet bruikbaar in een `if` van een step; via job-level env wel.
-      DOCKERHUB_ENABLED: ${{ secrets.DOCKERHUB_TOKEN != '' }}
+      DOCKERHUB_ENABLED: ${{ secrets.DOCKERHUB_TOKEN != '' && vars.DOCKERHUB_NAMESPACE != '' }}
     strategy:
       fail-fast: false
       matrix:
@@ -65,7 +65,7 @@ jobs:
         with:
           images: |
             ghcr.io/${{ github.repository }}-${{ matrix.component }}
-            name=docker.io/aalhabeeb/ctrltab-${{ matrix.component }},enable=${{ env.DOCKERHUB_ENABLED == 'true' }}
+            name=docker.io/${{ vars.DOCKERHUB_NAMESPACE }}/ctrltab-${{ matrix.component }},enable=${{ env.DOCKERHUB_ENABLED == 'true' }}
           tags: |
             type=ref,event=branch
             type=semver,pattern={{version}}
