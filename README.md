@@ -15,8 +15,16 @@ A lightweight, self-hosted bookmark and link manager to organize your links into
 > [@aalhabeeb](https://github.com/aalhabeeb) for a personal k3s homelab. The original work is
 > MIT licensed and that license is kept intact — see [`LICENSE`](LICENSE).
 >
-> Container images are published to GHCR, so there is no need to build from source:
-> `ghcr.io/aalhabeeb/ctrltab-api` and `ghcr.io/aalhabeeb/ctrltab-web`.
+> Container images are published on every push, so there is no need to build from source.
+> Upstream never published an image — these are the only ready-made ctrlTAB images:
+>
+> | Registry | API | Web |
+> |----------|-----|-----|
+> | GitHub Container Registry | `ghcr.io/aalhabeeb/ctrltab-api` | `ghcr.io/aalhabeeb/ctrltab-web` |
+> | Docker Hub | `aalhabeeb/ctrltab-api` | `aalhabeeb/ctrltab-web` |
+>
+> Images are tagged by branch, commit SHA and semver — there is deliberately no `latest`, so a
+> deployment always names an immutable tag.
 >
 > Changes relative to upstream: multi-stage Docker builds that carry a compiler for native
 > modules, a committed `package-lock.json`, `better-sqlite3` 12 and `multer` 2, and a

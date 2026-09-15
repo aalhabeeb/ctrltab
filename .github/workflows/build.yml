@@ -1,9 +1,17 @@
-# Bouwt de api- en web-image en publiceert ze naar GHCR.
+# Bouwt de api- en web-image en publiceert ze naar GHCR en Docker Hub.
 #
 # Tags: elke push naar main levert `main` en `sha-<commit>`; een git-tag `v1.2.0`
 # levert daarnaast `1.2.0` en `1.2`. Bewust GEEN `latest`: de Kubernetes-manifests
 # in de k3s-repo verwijzen naar een onveranderlijke tag, zodat terugrollen
 # neerkomt op het terugzetten van een regel in Git.
+#
+# GHCR is de bron waar het cluster uit trekt (geen pull-rate-limits). Docker Hub is
+# er voor distributie naar anderen: upstream publiceerde nooit een image, dus dit
+# is de enige kant-en-klare ctrlTAB-image die er is.
+#
+# De Docker Hub-push schakelt zichzelf uit zolang het secret DOCKERHUB_TOKEN niet
+# bestaat; de GHCR-push draait dan gewoon door. Zo faalt de workflow niet in een
+# fork of voordat het token gezet is.
 #
 # Pull requests bouwen wel, maar pushen niet. Dat is de vangnetfunctie: een
 # Renovate-PR die de Node-major of een native dependency ophoogt, faalt hier
@@ -24,6 +32,9 @@ jobs:
     permissions:
       contents: read
       packages: write
+    env:
+      # secrets zijn niet bruikbaar in een `if` van een step; via job-level env wel.
+      DOCKERHUB_ENABLED: ${{ secrets.DOCKERHUB_TOKEN != '' }}
     strategy:
       fail-fast: false
       matrix:
@@ -41,11 +52,20 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Inloggen bij Docker Hub
+        if: github.event_name != 'pull_request' && env.DOCKERHUB_ENABLED == 'true'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
       - name: Tags en labels bepalen
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository }}-${{ matrix.component }}
+          images: |
+            ghcr.io/${{ github.repository }}-${{ matrix.component }}
+            name=docker.io/aalhabeeb/ctrltab-${{ matrix.component }},enable=${{ env.DOCKERHUB_ENABLED == 'true' }}
           tags: |
             type=ref,event=branch
             type=semver,pattern={{version}}
