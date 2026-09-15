@@ -936,6 +936,7 @@ if (fs.existsSync(PUBLIC_DIR)) {
   // zonder die uitzondering zou een onbekende API-route index.html met status 200
   // teruggeven in plaats van een nette 404.
   app.get(/^\/(?!api(?:\/|$)).*/, (req, res) => {
+    res.setHeader('Cache-Control', 'no-cache, must-revalidate');
     res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
   });
 } else {
