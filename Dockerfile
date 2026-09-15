@@ -34,7 +34,10 @@ ENV NODE_ENV=production \
 
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
-COPY api/package.json api/package-lock.json api/server.js ./
+# Alles uit api/, geen expliciete bestandslijst: één vergeten bestand in zo'n lijst
+# levert een image op die prima bouwt en pas bij het starten omvalt met
+# MODULE_NOT_FOUND. Precies dat gebeurde met oidc.js.
+COPY api/ ./
 COPY web/html/ ./public/
 RUN mkdir -p /app/data
 
