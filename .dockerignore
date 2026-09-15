@@ -1,0 +1,10 @@
+.git
+.github
+node_modules
+api/node_modules
+api/data
+*.db
+*.db-journal
+npm-debug.log*
+screenshots
+web-template

@@ -1,4 +1,10 @@
-# ctrlTAB API — multi-stage build.
+# ctrlTAB — één image met API én frontend.
+#
+# Upstream splitste dit in twee containers: Node voor de API en nginx voor de
+# statische frontend plus een /api/-proxy. Dat betekende twee images, twee
+# Deployments en een ConfigMap met een aangepaste nginx-config. Express serveert
+# de frontend nu zelf (zie het Frontend-blok in api/server.js), dus dat is er
+# allemaal niet meer.
 #
 # De builder-stage heeft python3/make/g++ aan boord. Voor better-sqlite3 en bcrypt
 # bestaan prebuilt binaries voor de gangbare Node-ABI's; bestaat die voor de
@@ -6,15 +12,13 @@
 # misging in de oude Kubernetes-uitrol: die draaide `npm install` bij elke
 # pod-start in een kale node-image zonder compiler, en klapte zodra de node-major
 # omhoog ging (Renovate-PR #287, ~21 uur downtime).
-#
-# De runtime-stage blijft kaal: alleen node_modules en de applicatiecode.
 
 FROM node:24-alpine AS deps
 
 RUN apk add --no-cache python3 make g++
 
 WORKDIR /app
-COPY package.json package-lock.json ./
+COPY api/package.json api/package-lock.json ./
 RUN npm ci --omit=dev
 
 # Rookproef tijdens de build. npm kan install-scripts overslaan (npm 12 doet dat
@@ -25,11 +29,13 @@ RUN node -e "const D=require('better-sqlite3'); const db=new D(':memory:'); db.e
 FROM node:24-alpine AS runtime
 
 ENV NODE_ENV=production \
-    DB_PATH=/app/data/ctrltab.db
+    DB_PATH=/app/data/ctrltab.db \
+    PUBLIC_DIR=/app/public
 
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
-COPY package.json package-lock.json server.js ./
+COPY api/package.json api/package-lock.json api/server.js ./
+COPY web/html/ ./public/
 RUN mkdir -p /app/data
 
 EXPOSE 3000

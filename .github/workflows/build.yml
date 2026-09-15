@@ -1,13 +1,16 @@
-# Bouwt de api- en web-image en publiceert ze naar GHCR en Docker Hub.
+# Bouwt de ctrlTAB-image en publiceert hem naar GHCR en Docker Hub.
 #
-# Tags: elke push naar main levert `main` en `sha-<commit>`; een git-tag `v1.2.0`
-# levert daarnaast `1.2.0` en `1.2`. Bewust GEEN `latest`: de Kubernetes-manifests
-# in de k3s-repo verwijzen naar een onveranderlijke tag, zodat terugrollen
-# neerkomt op het terugzetten van een regel in Git.
+# Eén image: Express serveert zowel de API als de statische frontend, dus de
+# aparte nginx-image van upstream is vervallen.
+#
+# Tags: elke push naar main levert `main`, `latest` en `sha-<commit>`; een git-tag
+# `v1.2.0` levert daarnaast `1.2.0` en `1.2`. `latest` is er voor wie hem met de
+# hand wil draaien; de Kubernetes-manifests in de k3s-repo wijzen bewust naar een
+# onveranderlijke tag, zodat terugrollen neerkomt op het terugzetten van een regel
+# in Git.
 #
 # GHCR is de bron waar het cluster uit trekt (geen pull-rate-limits). Docker Hub is
-# er voor distributie naar anderen: upstream publiceerde nooit een image, dus dit
-# is de enige kant-en-klare ctrlTAB-image die er is.
+# er voor distributie naar anderen: upstream publiceerde nooit een image.
 #
 # De Docker Hub-push schakelt zichzelf uit zolang het secret DOCKERHUB_TOKEN of de
 # variabele DOCKERHUB_NAMESPACE ontbreekt; de GHCR-push draait dan gewoon door. Zo
@@ -35,10 +38,6 @@ jobs:
     env:
       # secrets zijn niet bruikbaar in een `if` van een step; via job-level env wel.
       DOCKERHUB_ENABLED: ${{ secrets.DOCKERHUB_TOKEN != '' && vars.DOCKERHUB_NAMESPACE != '' }}
-    strategy:
-      fail-fast: false
-      matrix:
-        component: [api, web]
     steps:
       - uses: actions/checkout@v5
 
@@ -64,18 +63,19 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            ghcr.io/${{ github.repository }}-${{ matrix.component }}
-            name=docker.io/${{ vars.DOCKERHUB_NAMESPACE }}/ctrltab-${{ matrix.component }},enable=${{ env.DOCKERHUB_ENABLED == 'true' }}
+            ghcr.io/${{ github.repository }}
+            name=docker.io/${{ vars.DOCKERHUB_NAMESPACE }}/ctrltab,enable=${{ env.DOCKERHUB_ENABLED == 'true' }}
           tags: |
             type=ref,event=branch
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=sha
+            type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Bouwen en pushen
         uses: docker/build-push-action@v6
         with:
-          context: ./${{ matrix.component }}
+          context: .
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

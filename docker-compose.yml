@@ -1,15 +1,13 @@
+# Lokale dev-opzet. Eén container: Express serveert de API én de frontend.
 services:
-  # Backend API - Node.js + Express + SQLite
-  api:
-    build:
-      context: ./api
-      dockerfile: Dockerfile
-    container_name: ctrltab-api
+  ctrltab:
+    build: .
+    container_name: ctrltab
     restart: unless-stopped
+    ports:
+      - "8090:3000"
     volumes:
       - ctrltab-data:/app/data
-    networks:
-      - ctrltab-net
     environment:
       - NODE_ENV=production
       - DB_PATH=/app/data/ctrltab.db
@@ -17,26 +15,6 @@ services:
       - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
 
-  # Frontend + Reverse Proxy - Nginx
-  web:
-    build:
-      context: ./web
-      dockerfile: Dockerfile
-    container_name: ctrltab-web
-    restart: unless-stopped
-    ports:
-      - "8090:80"
-    volumes:
-      - ./web/html:/usr/share/nginx/html:ro
-    depends_on:
-      - api
-    networks:
-      - ctrltab-net
-
 volumes:
   ctrltab-data:
     driver: local
-
-networks:
-  ctrltab-net:
-    driver: bridge

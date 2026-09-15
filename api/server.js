@@ -15,6 +15,8 @@ const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production';
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 const UPLOADS_DIR = path.join(path.dirname(DB_PATH), 'uploads');
+// Map met de statische frontend; in de container /app/public (zie Dockerfile).
+const PUBLIC_DIR = process.env.PUBLIC_DIR || path.join(__dirname, 'public');
 
 fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 
@@ -910,7 +912,37 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+
+// ─── Frontend ─────────────────────────────────────────────────────
+// De statische frontend wordt door deze server zelf geserveerd. Upstream zette er
+// een aparte nginx-container voor, wat twee images en twee Deployments betekende;
+// nu is het er één. nginx deed hier niets wat Express niet kan: statische files,
+// een SPA-fallback en no-cache-headers op html/css/js (met ETag, dus een 304 zodra
+// er niets veranderd is).
+//
+// Let op: de `client_max_body_size 3m` van nginx is hiermee vervallen. De grens ligt
+// nu bij de multer-limieten per route hierboven (2 t/m 10 MB) en, in het homelab,
+// bij MAX_CLIENT_SIZE van BunkerWeb ervoor.
+if (fs.existsSync(PUBLIC_DIR)) {
+  app.use(express.static(PUBLIC_DIR, {
+    setHeaders: (res, filePath) => {
+      if (/\.(html|css|js)$/i.test(filePath)) {
+        res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+      }
+    }
+  }));
+
+  // SPA-fallback voor alles wat niet onder /api/ valt. De lookahead is essentieel:
+  // zonder die uitzondering zou een onbekende API-route index.html met status 200
+  // teruggeven in plaats van een nette 404.
+  app.get(/^\/(?!api(?:\/|$)).*/, (req, res) => {
+    res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
+  });
+} else {
+  console.warn(`Geen frontend gevonden in ${PUBLIC_DIR}; alleen de API is bereikbaar.`);
+}
+
 // ─── Start ────────────────────────────────────────────────────────
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`ctrltab API running on port ${PORT}`);
+  console.log(`ctrltab running on port ${PORT} (API + frontend)`);
 });

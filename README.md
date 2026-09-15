@@ -18,18 +18,23 @@ A lightweight, self-hosted bookmark and link manager to organize your links into
 > Container images are published on every push, so there is no need to build from source.
 > Upstream never published an image — these are the only ready-made ctrlTAB images:
 >
-> | Registry | API | Web |
-> |----------|-----|-----|
-> | GitHub Container Registry | `ghcr.io/aalhabeeb/ctrltab-api` | `ghcr.io/aalhabeeb/ctrltab-web` |
-> | Docker Hub | `alhabeeb/ctrltab-api` | `alhabeeb/ctrltab-web` |
+> | Registry | Image |
+> |----------|-------|
+> | GitHub Container Registry | `ghcr.io/aalhabeeb/ctrltab` |
+> | Docker Hub | `alhabeeb/ctrltab` |
 >
-> Images are tagged by branch, commit SHA and semver — there is deliberately no `latest`, so a
-> deployment always names an immutable tag.
+> One image, one container: Express serves both the API and the static frontend, so the
+> separate nginx container from upstream is gone. Tags: `latest`, `main`, `sha-<commit>` and
+> semver on release tags.
 >
-> Changes relative to upstream: multi-stage Docker builds that carry a compiler for native
-> modules, a committed `package-lock.json`, `better-sqlite3` 12 and `multer` 2, and a
-> configurable API upstream in the nginx config (`API_HOST` / `API_PORT`) instead of a
-> hard-coded compose service name.
+> ```bash
+> docker run -d --name ctrltab -p 8090:3000 -v ctrltab-data:/app/data \
+>   -e JWT_SECRET="$(openssl rand -hex 32)" alhabeeb/ctrltab:latest
+> ```
+>
+> Changes relative to upstream: a single image instead of a separate API and nginx container,
+> multi-stage Docker builds that carry a compiler for native modules, a committed
+> `package-lock.json`, and `better-sqlite3` 12 and `multer` 2.
 
 ---
 
